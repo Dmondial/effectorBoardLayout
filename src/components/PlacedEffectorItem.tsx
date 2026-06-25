@@ -11,7 +11,7 @@ import { APP_COLORS } from '../constants/colors';
 
 interface Props {
   placement: ResolvedPlacement;
-  scale: number; // pixels per cm
+  scale: number;
   boardPixelWidth: number;
   boardPixelHeight: number;
   mode: BoardMode;
@@ -32,6 +32,11 @@ export function PlacedEffectorItem({
   onMove,
   onSelect,
 }: Props) {
+  // Mirror all props into a ref so PanResponder callbacks (created once) always
+  // read up-to-date values without needing to be re-created.
+  const s = useRef({ mode, onMove, onSelect, scale, boardPixelWidth, boardPixelHeight, placement });
+  s.current = { mode, onMove, onSelect, scale, boardPixelWidth, boardPixelHeight, placement };
+
   const pixelW = placement.widthCm * scale;
   const pixelH = placement.depthCm * scale;
 
@@ -39,45 +44,62 @@ export function PlacedEffectorItem({
     new Animated.ValueXY({ x: placement.x * scale, y: placement.y * scale })
   ).current;
 
-  // Keep position in sync when external x/y changes (e.g. loaded from storage)
-  const lastExternalPos = useRef({ x: placement.x, y: placement.y });
-  if (
-    lastExternalPos.current.x !== placement.x ||
-    lastExternalPos.current.y !== placement.y
-  ) {
-    lastExternalPos.current = { x: placement.x, y: placement.y };
+  // Sync when position is updated externally (e.g. loaded from storage)
+  const prevPos = useRef({ x: placement.x, y: placement.y });
+  if (prevPos.current.x !== placement.x || prevPos.current.y !== placement.y) {
+    prevPos.current = { x: placement.x, y: placement.y };
     position.setValue({ x: placement.x * scale, y: placement.y * scale });
   }
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => mode === 'move',
-      onMoveShouldSetPanResponder: () => mode === 'move',
+      // Always claim the initial touch so we handle both drag and tap.
+      onStartShouldSetPanResponder: () => true,
+      // Only intercept move events in 'move' mode with actual movement.
+      onMoveShouldSetPanResponder: (_e, g) =>
+        s.current.mode === 'move' && (Math.abs(g.dx) > 3 || Math.abs(g.dy) > 3),
+
       onPanResponderGrant: () => {
+        if (s.current.mode !== 'move') return;
         position.setOffset({
           x: (position.x as any)._value,
           y: (position.y as any)._value,
         });
         position.setValue({ x: 0, y: 0 });
       },
-      onPanResponderMove: Animated.event(
-        [null, { dx: position.x, dy: position.y }],
-        { useNativeDriver: false }
-      ),
-      onPanResponderRelease: () => {
-        position.flattenOffset();
-        const rawX = (position.x as any)._value as number;
-        const rawY = (position.y as any)._value as number;
-        const clampedX = Math.max(0, Math.min(boardPixelWidth - pixelW, rawX));
-        const clampedY = Math.max(0, Math.min(boardPixelHeight - pixelH, rawY));
-        position.setValue({ x: clampedX, y: clampedY });
-        onMove(placement.placementId, clampedX / scale, clampedY / scale);
+
+      onPanResponderMove: (_e, g) => {
+        if (s.current.mode !== 'move') return;
+        position.x.setValue(g.dx);
+        position.y.setValue(g.dy);
+      },
+
+      onPanResponderRelease: (_e, g) => {
+        const { mode, onMove, onSelect, scale, boardPixelWidth, boardPixelHeight, placement } =
+          s.current;
+        const pw = placement.widthCm * scale;
+        const ph = placement.depthCm * scale;
+        const isTap = Math.abs(g.dx) < 5 && Math.abs(g.dy) < 5;
+
+        if (mode === 'move') {
+          position.flattenOffset();
+          if (!isTap) {
+            const rawX = (position.x as any)._value as number;
+            const rawY = (position.y as any)._value as number;
+            const cx = Math.max(0, Math.min(boardPixelWidth - pw, rawX));
+            const cy = Math.max(0, Math.min(boardPixelHeight - ph, rawY));
+            position.setValue({ x: cx, y: cy });
+            onMove(placement.placementId, cx / scale, cy / scale);
+          }
+        } else if (isTap) {
+          // wire / delete モードではタップで選択
+          onSelect(placement.placementId);
+        }
       },
     })
   ).current;
 
-  const isWiringSource = wiringFrom === placement.placementId;
-  const borderColor = selected || isWiringSource ? APP_COLORS.accent : 'transparent';
+  const isHighlighted = selected || wiringFrom === placement.placementId;
 
   return (
     <Animated.View
@@ -87,68 +109,38 @@ export function PlacedEffectorItem({
           width: pixelW,
           height: pixelH,
           backgroundColor: placement.color,
-          borderColor,
+          borderColor: isHighlighted ? APP_COLORS.accent : 'transparent',
           transform: position.getTranslateTransform(),
         },
       ]}
       {...panResponder.panHandlers}
-      onStartShouldSetResponder={() => mode !== 'move'}
-      onResponderRelease={() => {
-        if (mode === 'wire' || mode === 'delete') {
-          onSelect(placement.placementId);
-        }
-      }}
     >
       <Text style={styles.label} numberOfLines={2}>
         {placement.name}
       </Text>
-      {/* Jack indicators */}
-      <JackDot side={placement.inputJack.side} position={placement.inputJack.position} isInput />
-      <JackDot side={placement.outputJack.side} position={placement.outputJack.position} isInput={false} />
+      <JackDot side={placement.inputJack.side} pos={placement.inputJack.position} isInput />
+      <JackDot side={placement.outputJack.side} pos={placement.outputJack.position} isInput={false} />
     </Animated.View>
   );
 }
 
-function JackDot({
-  side,
-  position,
-  isInput,
-}: {
-  side: string;
-  position: number;
-  isInput: boolean;
-}) {
-  const size = 8;
-  const half = size / 2;
-  const style: any = {
+function JackDot({ side, pos, isInput }: { side: string; pos: number; isInput: boolean }) {
+  const SIZE = 8;
+  const HALF = SIZE / 2;
+  const base: any = {
     position: 'absolute',
-    width: size,
-    height: size,
-    borderRadius: half,
+    width: SIZE,
+    height: SIZE,
+    borderRadius: HALF,
     backgroundColor: isInput ? '#FFD700' : '#00FF7F',
     borderWidth: 1,
     borderColor: '#000',
   };
-
-  if (side === 'left') {
-    style.left = -half;
-    style.top = `${position * 100}%`;
-    style.marginTop = -half;
-  } else if (side === 'right') {
-    style.right = -half;
-    style.top = `${position * 100}%`;
-    style.marginTop = -half;
-  } else if (side === 'top') {
-    style.top = -half;
-    style.left = `${position * 100}%`;
-    style.marginLeft = -half;
-  } else {
-    style.bottom = -half;
-    style.left = `${position * 100}%`;
-    style.marginLeft = -half;
-  }
-
-  return <View style={style} />;
+  if (side === 'left')   { base.left = -HALF; base.top = `${pos * 100}%`; base.marginTop = -HALF; }
+  if (side === 'right')  { base.right = -HALF; base.top = `${pos * 100}%`; base.marginTop = -HALF; }
+  if (side === 'top')    { base.top = -HALF; base.left = `${pos * 100}%`; base.marginLeft = -HALF; }
+  if (side === 'bottom') { base.bottom = -HALF; base.left = `${pos * 100}%`; base.marginLeft = -HALF; }
+  return <View style={base} />;
 }
 
 const styles = StyleSheet.create({

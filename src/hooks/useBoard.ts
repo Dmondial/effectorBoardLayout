@@ -35,7 +35,7 @@ export function useBoard() {
   const persist = useCallback((updated: Board) => {
     const b = withTimestamp(updated);
     setBoard(b);
-    saveBoard(b);
+    saveBoard(b).catch((e) => console.warn('[Board] save failed:', e));
     return b;
   }, []);
 
