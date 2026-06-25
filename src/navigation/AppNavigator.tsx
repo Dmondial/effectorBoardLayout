@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BoardScreen } from '../screens/BoardScreen';
 import { MyEffectorsScreen } from '../screens/MyEffectorsScreen';
 import { AddEditEffectorScreen } from '../screens/AddEditEffectorScreen';
@@ -50,6 +51,9 @@ type TabParamList = {
 const Tab = createBottomTabNavigator<TabParamList>();
 
 export function AppNavigator() {
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = 60 + insets.bottom;
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -57,11 +61,13 @@ export function AppNavigator() {
         tabBarStyle: {
           backgroundColor: APP_COLORS.surface,
           borderTopColor: APP_COLORS.border,
-          height: 60,
+          height: tabBarHeight,
+          paddingBottom: insets.bottom + 6,
+          paddingTop: 6,
         },
         tabBarActiveTintColor: APP_COLORS.primary,
         tabBarInactiveTintColor: APP_COLORS.textSecondary,
-        tabBarLabelStyle: { fontSize: 12, marginBottom: 4 },
+        tabBarLabelStyle: { fontSize: 12 },
       }}
     >
       <Tab.Screen
