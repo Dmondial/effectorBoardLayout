@@ -52,8 +52,8 @@ export function BoardScreen() {
             depthCm: toCm(preset.size.depth, preset.size.unit),
             x: p.x,
             y: p.y,
-            inputJack: preset.inputJack,
-            outputJack: preset.outputJack,
+            inputJacks: preset.inputJacks,
+            outputJacks: preset.outputJacks,
           } satisfies ResolvedPlacement;
         } else {
           const my = myEffectors.find((e) => e.id === p.effectorId);
@@ -66,8 +66,8 @@ export function BoardScreen() {
             depthCm: toCm(my.size.depth, my.size.unit),
             x: p.x,
             y: p.y,
-            inputJack: my.inputJack,
-            outputJack: my.outputJack,
+            inputJacks: my.inputJacks,
+            outputJacks: my.outputJacks,
           } satisfies ResolvedPlacement;
         }
       })
@@ -106,11 +106,22 @@ export function BoardScreen() {
         setWiringFrom(null);
         return;
       }
-      // Create wiring
+      // Create wiring: output jack[0] → input jack[0]
+      const fromPlacement = resolvedPlacements.find((p) => p.placementId === wiringFrom);
+      const toPlacement = resolvedPlacements.find((p) => p.placementId === placementId);
+      if (!fromPlacement?.outputJacks.length || !toPlacement?.inputJacks.length) {
+        Alert.alert('配線エラー', '接続元にOUTジャック、接続先にINジャックが必要です');
+        setWiringFrom(null);
+        return;
+      }
       const newWiring: Wiring = {
         id: Date.now().toString(),
         fromPlacementId: wiringFrom,
+        fromJackType: 'output',
+        fromJackIndex: 0,
         toPlacementId: placementId,
+        toJackType: 'input',
+        toJackIndex: 0,
         color: WIRING_COLORS[board.wirings.length % WIRING_COLORS.length],
       };
       addWiring(newWiring);

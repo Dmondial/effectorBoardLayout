@@ -3,10 +3,23 @@ import { MyEffector } from '../types';
 
 const MY_EFFECTORS_KEY = '@my_effectors';
 
+const DEFAULT_INPUT_JACK = { side: 'right' as const, position: 0.3 };
+const DEFAULT_OUTPUT_JACK = { side: 'left' as const, position: 0.3 };
+
+// Migrate from old format (inputJack singular) to new format (inputJacks array)
+function migrateEffector(raw: any): MyEffector {
+  return {
+    ...raw,
+    inputJacks: raw.inputJacks ?? (raw.inputJack ? [raw.inputJack] : [DEFAULT_INPUT_JACK]),
+    outputJacks: raw.outputJacks ?? (raw.outputJack ? [raw.outputJack] : [DEFAULT_OUTPUT_JACK]),
+  };
+}
+
 export async function loadMyEffectors(): Promise<MyEffector[]> {
   try {
     const data = await AsyncStorage.getItem(MY_EFFECTORS_KEY);
-    return data ? (JSON.parse(data) as MyEffector[]) : [];
+    if (!data) return [];
+    return (JSON.parse(data) as any[]).map(migrateEffector);
   } catch {
     return [];
   }

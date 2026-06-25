@@ -1,12 +1,34 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Board } from '../types';
+import { Board, Wiring } from '../types';
 
 const BOARDS_KEY = '@effector_boards';
+
+// Migrate wiring from old format (no jackType/jackIndex) to new format
+function migrateWiring(raw: any): Wiring {
+  return {
+    id: raw.id,
+    fromPlacementId: raw.fromPlacementId,
+    fromJackType: raw.fromJackType ?? 'output',
+    fromJackIndex: raw.fromJackIndex ?? 0,
+    toPlacementId: raw.toPlacementId,
+    toJackType: raw.toJackType ?? 'input',
+    toJackIndex: raw.toJackIndex ?? 0,
+    color: raw.color,
+  };
+}
+
+function migrateBoard(raw: any): Board {
+  return {
+    ...raw,
+    wirings: (raw.wirings ?? []).map(migrateWiring),
+  };
+}
 
 export async function loadBoards(): Promise<Board[]> {
   try {
     const data = await AsyncStorage.getItem(BOARDS_KEY);
-    return data ? (JSON.parse(data) as Board[]) : [];
+    if (!data) return [];
+    return (JSON.parse(data) as any[]).map(migrateBoard);
   } catch {
     return [];
   }

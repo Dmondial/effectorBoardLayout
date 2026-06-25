@@ -118,8 +118,12 @@ export function PlacedEffectorItem({
       <Text style={styles.label} numberOfLines={2}>
         {placement.name}
       </Text>
-      <JackDot side={placement.inputJack.side} pos={placement.inputJack.position} isInput />
-      <JackDot side={placement.outputJack.side} pos={placement.outputJack.position} isInput={false} />
+      {placement.inputJacks.map((j, i) => (
+        <JackDot key={`in${i}`} side={j.side} pos={j.position} isInput />
+      ))}
+      {placement.outputJacks.map((j, i) => (
+        <JackDot key={`out${i}`} side={j.side} pos={j.position} isInput={false} />
+      ))}
     </Animated.View>
   );
 }

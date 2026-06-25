@@ -110,7 +110,7 @@ function EffectorCard({
         ) : null}
         <View style={styles.jackInfo}>
           <Text style={styles.jackTxt}>
-            IN: {effector.inputJack.side}  OUT: {effector.outputJack.side}
+            IN: {effector.inputJacks.map((j) => j.side).join('/')}  OUT: {effector.outputJacks.map((j) => j.side).join('/')}
           </Text>
         </View>
       </View>
