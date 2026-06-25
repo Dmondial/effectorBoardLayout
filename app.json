@@ -10,7 +10,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.urayamadaiki.effectorboard",
+      "package": "com.ochanoma.effectorboard",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#1A1A2E",
@@ -23,9 +23,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-font"
-    ]
+    }
   }
 }
