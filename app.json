@@ -10,7 +10,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.ochanoma.effectorboard",
+      "package": "com.ochanoma.effectorBoardRayout",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#1A1A2E",
@@ -23,6 +23,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "bb78682c-9110-4e35-8d64-1f4508d3fbc1"
+      }
     }
   }
 }
