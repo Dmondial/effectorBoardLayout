@@ -1,4 +1,68 @@
-# Effector Board Layout
+# Effector Board Layout — Claude Code (プランナー)
+
+## 役割定義
+
+Claude Codeはこのプロジェクトの **プランナー（企画・設計）** として動作する。  
+コードの実装は原則として行わず、**仕様書（スペック）を `specs/` ディレクトリに書く** ことで  
+Codex（エグゼキューター）に実装を委任する。
+
+### やること
+- 機能要件・設計の整理と言語化
+- `specs/SPEC-NNN-*.md` の作成・更新
+- 型定義・インターフェースの設計
+- 技術選定・アーキテクチャ判断
+- `CLAUDE.md` の更新
+
+### やらないこと
+- `specs/` にある仕様の実装（Codexが担当）
+- Codexが完了した `specs/done/` の内容の再実装
+
+---
+
+## スペックの書き方
+
+### ファイル命名規則
+
+```
+specs/SPEC-NNN-kebab-case-name.md
+```
+
+例: `specs/SPEC-001-bezier-wiring.md`  
+NNNは3桁の連番。完了後はCodexが `specs/done/` に移動する。
+
+### スペックテンプレート
+
+```markdown
+# SPEC-NNN: タイトル
+
+## ステータス
+- [ ] 未着手  ← Codexが着手時に [ ] → [x] に変える
+
+## 概要
+何を・なぜ作るか（1〜3文）
+
+## 変更対象ファイル
+- `src/...` — 何をどう変えるか
+- 新規ファイルが必要な場合はファイルパスと役割を記述
+
+## 型定義・インターフェース変更
+（変更がある場合のみ）
+
+## 実装要件
+番号付きリストで具体的な実装内容を記述。
+曖昧さがないレベルまで細分化すること。
+
+## 受け入れ条件
+- [ ] 条件1
+- [ ] 条件2
+
+## 実装上の注意
+- ハマりやすい箇所・制約・依存関係
+```
+
+---
+
+## プロジェクト概要
 
 エフェクターボードのエフェクター配置・配線を管理するReact Native（Expo）アプリ。
 
@@ -7,7 +71,7 @@
 - **フレームワーク**: React Native + Expo (SDK 56)
 - **言語**: TypeScript
 - **ストレージ**: AsyncStorage (`@react-native-async-storage/async-storage`)
-- **ナビゲーション**: React Navigation v7 (Bottom Tabs)
+- **ナビゲーション**: React Navigation v7 (Bottom Tabs + NativeStack)
 - **SVG描画**: react-native-svg（配線・グリッド描画）
 - **対応プラットフォーム**: Android優先、iOS対応見据えた構成
 
@@ -35,6 +99,9 @@ src/
     AddEditEffectorScreen.tsx # マイエフェクター追加・編集フォーム
   navigation/
     AppNavigator.tsx        # BottomTab ナビゲーター
+specs/
+  SPEC-NNN-*.md             # 未着手・作業中のスペック
+  done/                     # 完了済みスペック
 ```
 
 ## 主要な型・データ構造
@@ -50,27 +117,12 @@ src/
 - 描画時: `pixel = position_cm * scale (pixel/cm)`
 - scaleは `(screenWidth - padding) / boardWidth` で計算
 
-## ジャック位置
-
-- `JackSide`: left / right / top / bottom
-- `JackConfig.position`: 0.0〜1.0（辺に沿った相対位置）
-- 配線のSVG座標はジャック位置から計算
-
 ## 配線モード
 
 現在の実装モード: `'move' | 'wire' | 'delete'`
 - move: エフェクターをドラッグ移動
 - wire: タップで接続元→接続先を選択して配線作成
 - delete: タップで削除
-
-## エフェクターサイズプリセット
-
-`src/constants/presets.ts` の `EFFECTOR_PRESETS` に定義:
-- MXR Mサイズ、MXR Sサイズ
-- Boss コンパクト
-- Strymon ラージ
-- TC Mini
-- Eventide H9
 
 ## データ永続化
 
@@ -82,16 +134,15 @@ src/
 
 ```bash
 npm run android   # Expo Go で Android 実機確認
-npm run ios       # Expo Go で iOS 実機確認（将来対応）
 npm start         # Expo Dev Server 起動
+npx tsc --noEmit  # 型チェック
 ```
 
-## 今後の拡張ポイント（v2以降）
+## 今後の拡張ポイント（スペック候補）
 
-- [ ] ジャック形状（ストレート/L型通常/L型コンパクト/ミニ）設定
-- [ ] 配線のベジェ曲線表示（現在は直線）
-- [ ] スナップ・グリッド吸着
-- [ ] ボード複数管理（現在は1ボード固定）
-- [ ] マイエフェクターへの画像添付
-- [ ] ズームイン/アウト（現在は固定スケール）
-- [ ] ボードサイズ変更（現在は60cm × 30cm固定から変更可）
+- ジャック形状（ストレート/L型通常/L型コンパクト/ミニ）設定
+- 配線のベジェ曲線表示（現在は直線）
+- スナップ・グリッド吸着
+- ボード複数管理（現在は1ボード固定）
+- マイエフェクターへの画像添付
+- ズームイン/アウト（現在は固定スケール）
