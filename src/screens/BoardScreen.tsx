@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBoard } from '../hooks/useBoard';
 import { useMyEffectors } from '../hooks/useMyEffectors';
 import { Board } from '../components/Board';
@@ -30,8 +30,6 @@ export function BoardScreen() {
     removeWiring,
   } = useBoard();
   const { effectors: myEffectors } = useMyEffectors();
-  const insets = useSafeAreaInsets();
-
   const [mode, setMode] = useState<BoardMode>('move');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [wiringFrom, setWiringFrom] = useState<string | null>(null);
@@ -187,7 +185,7 @@ export function BoardScreen() {
       </ScrollView>
 
       {/* Bottom toolbar */}
-      <View style={[styles.toolbar, { paddingBottom: insets.bottom + 12 }]}>
+      <View style={styles.toolbar}>
         <TouchableOpacity
           style={styles.addBtn}
           onPress={() => setShowAddModal(true)}
@@ -423,9 +421,7 @@ const styles = StyleSheet.create({
   toolbar: {
     flexDirection: 'row',
     backgroundColor: APP_COLORS.surface,
-    paddingTop: 12,
-    paddingHorizontal: 12,
-    paddingBottom: 12, // fallback; overridden inline with insets.bottom + 12
+    padding: 12,
     gap: 8,
     borderTopWidth: 1,
     borderTopColor: APP_COLORS.border,
