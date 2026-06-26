@@ -10,7 +10,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.ochanoma.effectorBoardRayout",
+      "package": "com.ochanoma.effectorBoardLayout",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#1A1A2E",
